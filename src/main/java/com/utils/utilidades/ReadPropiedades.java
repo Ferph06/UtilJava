@@ -7,9 +7,9 @@ package com.utils.utilidades;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -19,8 +19,10 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
+import javax.ejb.Asynchronous;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
+import javax.inject.Named;
 
 /**
  * Clase con la cual se lee el archivo de propiedades o se escribe en caso de
@@ -31,7 +33,7 @@ import javax.ejb.Stateless;
  */
 @Stateless
 @LocalBean
-public class ReadPropiedades {
+public class ReadPropiedades implements Serializable {
 
     private Properties properties;
 
@@ -43,17 +45,18 @@ public class ReadPropiedades {
     private final static String DIR = Paths.get(NAMEPROPERTIES).normalize().toString();
 
     private final static Logger LOG = Logger.getLogger(ReadPropiedades.class.getName());
+    private final String SALTO = "\n";
 
     /**
      * Metodo que inicializa la obtencion de las propiedades
      */
     @PostConstruct
     public void init() {
-        this.obtenerPropiedad();
+        this.properties = this.obtenerPropiedad();
     }
 
     public Map<String, Object> lookupPropiedades() {
-        this.properties = this.obtenerPropiedad();
+      
         return (Map<String, Object>) this.properties.entrySet().parallelStream().filter(l -> l != null);
     }
 
@@ -64,44 +67,47 @@ public class ReadPropiedades {
      * @return Un objeto del tipo {@link  Properties} con la configuracion para
      * el envio de correos
      */
-    private synchronized Properties obtenerPropiedad() {
+    private Properties obtenerPropiedad() {
         if (!Paths.get(DIR).toFile().exists()) {
             Paths.get(DIR).toFile().mkdirs();
             try {
-                Properties p = new Properties();
-                p.setProperty("cuenta", DIR);
-                Files.createFile(Paths.get(DIR.concat(File.separator.concat("cuenta.properties"))).normalize());
-                try (InputStream is = Files.newInputStream(Paths.get(DIR.concat(File.separator.concat("cuenta.properties"))))) {
-                    
-                        p.load(is);
-                        p.setProperty("cuenta", DIR);
-                        try (OutputStreamWriter w = new OutputStreamWriter(new FileOutputStream(Paths.get(DIR.concat(File.separator.concat("cuenta.properties"))).normalize().toFile()), StandardCharsets.UTF_8);) {
-                            w.append("cuenta=fernando");
-                            p.store(w, null);
-                        } catch (Exception e) {
-                            LOG.log(Level.SEVERE, e.getMessage(), e);
-                        }
-                    
-                } catch (Exception e) {
-                    LOG.log(Level.SEVERE, e.getMessage(), e);
+                try (OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(
+                        Paths.get(DIR.concat(File.separator.concat("cuenta.properties"))).normalize().toString(),
+                        false), StandardCharsets.UTF_8)) {
+                    out.append("cuenta=fernando.perez@sferea.com").append(SALTO);
+                    out.append("password=Heart of the girl06").append(SALTO);
+                    out.append("port=587").append(SALTO);
+                    out.append("hostName=smtp.gmail.com").append(SALTO);
+                    out.flush();
+                } catch (Exception ex) {
+                    LOG.log(Level.SEVERE, ex.getMessage(), ex);
+                } finally {
+                    this.cargarPropiedades();
                 }
 
-            } catch (IOException e) {
+            } catch (Exception e) {
                 LOG.log(Level.SEVERE, e.getMessage(), e);
             }
         } else {
-            System.out.println("FILE \n" + Paths.get(DIR).toString());
             if (Paths.get(DIR.concat(File.separator.concat("cuenta.properties"))).toFile().exists()) {
-                try (InputStream is = Files.newInputStream(Paths.get(DIR.concat(File.separator.concat("cuenta.properties"))))) {
-                    if (!Objects.isNull(is)) {
-                        this.properties.load(is);
-                    }
-                } catch (Exception e) {
-                    LOG.log(Level.SEVERE, e.getMessage(), e);
-                }
+                this.cargarPropiedades();
             }
         }
 
         return this.properties;
+    }
+
+    /**
+     * Metodo mediante el cual se carga el archivo de propiedades
+     */
+    private void cargarPropiedades() {
+        try (InputStream is = Files.newInputStream(Paths.get(DIR.concat(File.separator.concat("cuenta.properties"))))) {
+            if (!Objects.isNull(is)) {
+                this.properties = new Properties();
+                this.properties.load(is);
+            }
+        } catch (Exception e) {
+            LOG.log(Level.SEVERE, e.getMessage(), e);
+        }
     }
 }

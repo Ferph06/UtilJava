@@ -7,13 +7,13 @@ package com.utils.service;
 
 import com.utils.pojos.TemplatePojo;
 import com.utils.utilidades.ReadPropiedades;
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
 import javax.ejb.Asynchronous;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
@@ -29,11 +29,11 @@ import javax.mail.Session;
  */
 @Stateless
 @LocalBean
-public class EmailService {
+@Named("EmailService")
+public class EmailService implements Serializable{
 
     @EJB
-    @Resource(lookup = "ReadPropiedades")
-    private ReadPropiedades properties=new ReadPropiedades();
+    private ReadPropiedades properties;
 
     private Session sesionemail;
 
@@ -62,11 +62,11 @@ public class EmailService {
         CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
         Executors.newCachedThreadPool().submit(() -> {
             this.sesionemail = this.iniciarSesionEmail();
+
             completableFuture.complete(true);
-            System.out.println("SE CREO");
             return null;
         });
-        return completableFuture;
+        return completableFuture.toCompletableFuture();
     }
 
     /**
@@ -85,7 +85,7 @@ public class EmailService {
 
         defaultp.put("mail.smtp.host", data.get("hostName"));
 
-        defaultp.put("mail.smtp.user", data.get("correoOrigen"));
+        defaultp.put("mail.smtp.user", data.get("cuenta"));
 
         defaultp.put("mail.smtp.password", data.get("password"));
 
@@ -96,7 +96,7 @@ public class EmailService {
         Session sessionl = Session.getInstance(defaultp, new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication((String) data.get("proveedor"), (String) data.get("password"));
+                return new PasswordAuthentication((String) data.get("cuenta"), (String) data.get("password"));
             }
         });
         return sessionl;
