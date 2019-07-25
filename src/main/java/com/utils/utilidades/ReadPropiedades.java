@@ -74,8 +74,8 @@ public class ReadPropiedades implements Serializable {
                 try (OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(
                         Paths.get(DIR.concat(File.separator.concat("cuenta.properties"))).normalize().toString(),
                         false), StandardCharsets.UTF_8)) {
-                    out.append("cuenta=fernando.perez@sferea.com").append(SALTO);
-                    out.append("password=Heart of the girl06").append(SALTO);
+                    out.append("cuenta=").append(SALTO);
+                    out.append("password=").append(SALTO);
                     out.append("port=587").append(SALTO);
                     out.append("hostName=smtp.gmail.com").append(SALTO);
                     out.flush();
